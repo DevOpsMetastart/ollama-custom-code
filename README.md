@@ -19,7 +19,7 @@ A custom API controller for Ollama LLM server integration with comprehensive fea
 
 - Node.js 16.0.0 or higher
 - npm or yarn
-- Ollama server running (your hosted server at `https://erccjfczbqn5gr-11434.proxy.runpod.net/`)
+- Ollama server running (your hosted server at `instance url`)
 
 ## 🛠️ Installation
 
@@ -42,7 +42,7 @@ A custom API controller for Ollama LLM server integration with comprehensive fea
    Edit `.env` file with your configuration:
    ```env
    # Ollama Server Configuration
-   OLLAMA_BASE_URL=https://erccjfczbqn5gr-11434.proxy.runpod.net
+   OLLAMA_BASE_URL=you-instace-hosted-llm-url
    OLLAMA_TIMEOUT=30000
    OLLAMA_MAX_RETRIES=3
 
