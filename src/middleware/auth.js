@@ -57,8 +57,13 @@ const rateLimiter = rateLimit({
  */
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
-        const isProduction = process.env.NODE_ENV === 'production';
+        // In production (Railway), allow all origins
+        if (process.env.NODE_ENV === 'production') {
+            return callback(null, true);
+        }
+        
+        // In development, use allowed origins
+        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001'];
         
         // In production, be more permissive with CORS for Railway deployment
         if (isProduction) {
