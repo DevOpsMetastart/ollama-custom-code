@@ -57,7 +57,13 @@ const rateLimiter = rateLimit({
  */
 const corsOptions = {
     origin: function (origin, callback) {
-        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+        // In production (Railway), allow all origins
+        if (process.env.NODE_ENV === 'production') {
+            return callback(null, true);
+        }
+        
+        // In development, use allowed origins
+        const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3001'];
         
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
