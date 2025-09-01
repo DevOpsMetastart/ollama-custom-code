@@ -149,7 +149,7 @@ app.listen(PORT, () => {
     console.log(`📖 Swagger Documentation: http://localhost:${PORT}/api-docs`);
     console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs/swagger.json`);
     console.log(`🏥 Health Check: http://localhost:${PORT}/api/ollama/health`);
-    console.log(`🔗 Ollama Server: ${process.env.OLLAMA_BASE_URL || 'https://erccjfczbqn5gr-11434.proxy.runpod.net'}`);
+    console.log(`🔗 Ollama Server: ${process.env.OLLAMA_BASE_URL}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
