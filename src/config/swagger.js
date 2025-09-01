@@ -18,12 +18,8 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server'
-      },
-      {
-        url: 'https://your-production-domain.com',
-        description: 'Production server'
+        url: '/',
+        description: 'Current server (works in all environments)'
       }
     ],
     components: {
@@ -506,7 +502,7 @@ const options = {
             },
             ollama_url: {
               type: 'string',
-              example: 'https://erccjfczbqn5gr-11434.proxy.runpod.net'
+              example: 'https://your-ollama-server.com'
             }
           }
         },
