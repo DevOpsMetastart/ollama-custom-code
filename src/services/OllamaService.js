@@ -6,7 +6,7 @@ const winston = require('winston');
  */
 class OllamaService {
     constructor() {
-        this.baseURL = process.env.OLLAMA_BASE_URL || 'https://erccjfczbqn5gr-11434.proxy.runpod.net';
+        this.baseURL = process.env.OLLAMA_BASE_URL;
         this.timeout = parseInt(process.env.OLLAMA_TIMEOUT) || 30000;
         this.maxRetries = parseInt(process.env.OLLAMA_MAX_RETRIES) || 3;
         

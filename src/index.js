@@ -38,7 +38,6 @@ app.use(helmet({
 // CORS middleware
 app.use(cors(corsOptions));
 
-
 // Additional CORS headers for Railway deployment
 app.use((req, res, next) => {
     // Set CORS headers for all responses
@@ -46,8 +45,6 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-api-key, X-API-Key');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
@@ -149,7 +146,7 @@ app.listen(PORT, () => {
     console.log(`📖 Swagger Documentation: http://localhost:${PORT}/api-docs`);
     console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs/swagger.json`);
     console.log(`🏥 Health Check: http://localhost:${PORT}/api/ollama/health`);
-    console.log(`🔗 Ollama Server: ${process.env.OLLAMA_BASE_URL || 'https://erccjfczbqn5gr-11434.proxy.runpod.net'}`);
+    console.log(`🔗 Ollama Server: ${process.env.OLLAMA_BASE_URL}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
