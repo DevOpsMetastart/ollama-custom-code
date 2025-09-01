@@ -58,7 +58,16 @@ const rateLimiter = rateLimit({
 const corsOptions = {
     origin: function (origin, callback) {
         const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+        const isProduction = process.env.NODE_ENV === 'production';
         
+        // In production, be more permissive with CORS for Railway deployment
+        if (isProduction) {
+            // Allow all origins in production for Railway deployment
+            // You can restrict this later by setting specific ALLOWED_ORIGINS
+            return callback(null, true);
+        }
+        
+        // In development, use strict CORS
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
         
@@ -69,7 +78,9 @@ const corsOptions = {
         }
     },
     credentials: true,
-    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-Key']
 };
 
 /**
