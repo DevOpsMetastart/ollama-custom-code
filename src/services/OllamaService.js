@@ -101,13 +101,18 @@ class OllamaService {
         // Handle long messages by truncating intelligently
         const processedMessages = this.processLongMessages(messages, model);
         
+        // Calculate appropriate timeout for this request
+        const totalMessageLength = processedMessages.reduce((total, msg) => total + (msg.content?.length || 0), 0);
+        const requestTimeout = this.calculateRequestTimeout(totalMessageLength, max_tokens, model);
+        
         this.logger.info('Chat completion request', {
             model,
             originalMessageCount: messages.length,
             processedMessageCount: processedMessages.length,
             totalTokens: this.countTokens(processedMessages),
             max_tokens,
-            temperature
+            temperature,
+            timeout: requestTimeout
         });
 
         const requestData = {
@@ -121,8 +126,9 @@ class OllamaService {
         };
 
         try {
-            const response = await this.retryRequest(() =>
-                this.client.post('/api/chat', requestData)
+            const response = await this.retryRequest((options) =>
+                this.client.post('/api/chat', requestData, options),
+                { timeout: requestTimeout }
             );
 
             return {
@@ -167,12 +173,16 @@ class OllamaService {
         // Handle long prompts by truncating intelligently
         const processedPrompt = this.processLongPrompt(prompt, model);
         
+        // Calculate appropriate timeout for this request
+        const requestTimeout = this.calculateRequestTimeout(processedPrompt.length, max_tokens, model);
+        
         this.logger.info('Text completion request', {
             model,
             originalPromptLength: prompt.length,
             processedPromptLength: processedPrompt.length,
             max_tokens,
-            temperature
+            temperature,
+            timeout: requestTimeout
         });
 
         const requestData = {
@@ -186,8 +196,9 @@ class OllamaService {
         };
 
         try {
-            const response = await this.retryRequest(() =>
-                this.client.post('/api/generate', requestData)
+            const response = await this.retryRequest((options) =>
+                this.client.post('/api/generate', requestData, options), 
+                { timeout: requestTimeout }
             );
 
             return {
@@ -294,22 +305,47 @@ class OllamaService {
      * @param {Function} requestFn - Request function to retry
      * @returns {Promise} Request result
      */
-    async retryRequest(requestFn) {
+    async retryRequest(requestFn, options = {}) {
         let lastError;
         
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
-                return await requestFn();
+                // Progressive timeout: increase timeout with each retry for long operations
+                const progressiveTimeout = this.timeout * Math.pow(1.5, attempt - 1);
+                const requestOptions = {
+                    ...options,
+                    timeout: options.timeout || progressiveTimeout
+                };
+                
+                this.logger.debug(`Request attempt ${attempt}/${this.maxRetries}`, {
+                    timeout: requestOptions.timeout,
+                    attempt
+                });
+                
+                return await requestFn(requestOptions);
             } catch (error) {
                 lastError = error;
                 
+                // Check if it's a timeout error
+                const isTimeoutError = error.code === 'ECONNABORTED' || 
+                                     error.message.includes('timeout') ||
+                                     error.message.includes('ETIMEDOUT');
+                
                 if (attempt === this.maxRetries) {
+                    // On final attempt, provide better error message for timeouts
+                    if (isTimeoutError) {
+                        throw new Error(`Request timeout after ${this.maxRetries} attempts. The Ollama server took too long to respond. This may be due to a large model or long text. Try reducing the text length or max_tokens.`);
+                    }
                     break;
                 }
 
                 // Wait with exponential backoff
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-                this.logger.warn(`Request failed, retrying in ${delay}ms (attempt ${attempt}/${this.maxRetries})`);
+                this.logger.warn(`Request failed, retrying in ${delay}ms (attempt ${attempt}/${this.maxRetries})`, {
+                    error: error.message,
+                    isTimeout: isTimeoutError,
+                    timeout: options.timeout || this.timeout
+                });
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
@@ -428,6 +464,63 @@ class OllamaService {
         return text.substring(0, startChars) + 
                '\n[... truncated ...]\n' +
                text.substring(text.length - endChars);
+    }
+
+    /**
+     * Calculate appropriate timeout for request based on complexity
+     * @param {number} textLength - Length of input text
+     * @param {number} maxTokens - Maximum tokens to generate
+     * @param {string} model - Model name
+     * @returns {number} Timeout in milliseconds
+     */
+    calculateRequestTimeout(textLength, maxTokens, model) {
+        // Use your preferred base timeout
+        const baseTimeout = this.timeout;
+        
+        // Model complexity multipliers (larger models need more time)
+        const modelMultipliers = {
+            'llama2': 1.0,
+            'llama3': 1.3,
+            'llama3.1': 1.3,
+            'llama3.2': 1.3,
+            'gemma': 1.2,
+            'gemma2': 1.2,
+            'gemma3': 1.2,
+            'mistral': 1.2,
+            'codellama': 1.5,
+            'phi': 0.9,
+            'default': 1.0
+        };
+        
+        const modelMultiplier = modelMultipliers[model] || modelMultipliers.default;
+        
+        // Calculate complexity factor based on text length and output tokens
+        const inputTokens = Math.ceil(textLength / 4); // Rough token estimate
+        const outputTokens = maxTokens;
+        const totalTokens = inputTokens + outputTokens;
+        
+        // Timeout calculation: base * model_multiplier * complexity_factor
+        const complexityFactor = Math.min(1 + (totalTokens / 1000), 3); // Cap at 3x
+        const calculatedTimeout = baseTimeout * modelMultiplier * complexityFactor;
+        
+        // Cap the timeout at reasonable limits (max 5 minutes)
+        const maxTimeout = 300000; // 5 minutes max
+        const finalTimeout = Math.min(calculatedTimeout, maxTimeout);
+        
+        this.logger.debug('Timeout calculation', {
+            model,
+            textLength,
+            inputTokens,
+            outputTokens,
+            totalTokens,
+            modelMultiplier,
+            complexityFactor,
+            baseTimeout,
+            calculatedTimeout,
+            finalTimeout
+        });
+        
+        return finalTimeout;
     }
 
     /**
