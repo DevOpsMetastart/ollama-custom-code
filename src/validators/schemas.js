@@ -53,7 +53,28 @@ const schemas = {
     // API key validation schema
     apiKey: Joi.object({
         'x-api-key': Joi.string().required()
-    }).unknown()
+    }).unknown(),
+
+    // Document summary request schema
+    documentSummary: Joi.object({
+        model: Joi.string().optional().default('llama2'),
+        maxLength: Joi.number().integer().min(50).max(2000).optional().default(500),
+        temperature: Joi.number().min(0).max(2).optional().default(0.3),
+        customPrompt: Joi.string().max(1000).optional()
+    }),
+
+    // Document question request schema
+    documentQuestion: Joi.object({
+        question: Joi.string().min(1).max(1000).required(),
+        model: Joi.string().optional().default('llama2'),
+        temperature: Joi.number().min(0).max(2).optional().default(0.3),
+        max_tokens: Joi.number().integer().min(50).max(2000).optional().default(1000)
+    }),
+
+    // File ID validation schema
+    fileId: Joi.object({
+        fileId: Joi.string().uuid().required()
+    })
 };
 
 /**

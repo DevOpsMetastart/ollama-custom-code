@@ -522,6 +522,351 @@ const options = {
               example: '2024-01-01T00:00:00.000Z'
             }
           }
+        },
+        DocumentUploadResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                fileInfo: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      format: 'uuid',
+                      example: '123e4567-e89b-12d3-a456-426614174000'
+                    },
+                    originalName: {
+                      type: 'string',
+                      example: 'document.pdf'
+                    },
+                    fileName: {
+                      type: 'string',
+                      example: '123e4567-e89b-12d3-a456-426614174000.pdf'
+                    },
+                    size: {
+                      type: 'integer',
+                      example: 1024000
+                    },
+                    mimeType: {
+                      type: 'string',
+                      example: 'application/pdf'
+                    },
+                    extension: {
+                      type: 'string',
+                      example: '.pdf'
+                    },
+                    uploadedAt: {
+                      type: 'string',
+                      format: 'date-time',
+                      example: '2024-01-01T00:00:00.000Z'
+                    }
+                  }
+                },
+                textInfo: {
+                  type: 'object',
+                  properties: {
+                    text: {
+                      type: 'string',
+                      example: 'This is the extracted text content from the document...'
+                    },
+                    wordCount: {
+                      type: 'integer',
+                      example: 150
+                    },
+                    characterCount: {
+                      type: 'integer',
+                      example: 850
+                    }
+                  }
+                }
+              }
+            },
+            processing_time_ms: {
+              type: 'integer',
+              example: 2500
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentSummaryRequest: {
+          type: 'object',
+          properties: {
+            model: {
+              type: 'string',
+              default: 'llama2',
+              example: 'llama2'
+            },
+            maxLength: {
+              type: 'integer',
+              minimum: 50,
+              maximum: 2000,
+              default: 500,
+              example: 500
+            },
+            temperature: {
+              type: 'number',
+              minimum: 0,
+              maximum: 2,
+              default: 0.3,
+              example: 0.3
+            },
+            customPrompt: {
+              type: 'string',
+              maxLength: 1000,
+              example: 'Please provide a detailed summary focusing on key findings and recommendations.'
+            }
+          }
+        },
+        DocumentSummaryResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                fileId: {
+                  type: 'string',
+                  format: 'uuid',
+                  example: '123e4567-e89b-12d3-a456-426614174000'
+                },
+                summary: {
+                  type: 'string',
+                  example: 'This document discusses the implementation of AI technologies in modern business environments. Key findings include improved efficiency, cost reduction, and enhanced customer experience...'
+                },
+                model: {
+                  type: 'string',
+                  example: 'llama2'
+                },
+                originalLength: {
+                  type: 'integer',
+                  example: 5000
+                },
+                summaryLength: {
+                  type: 'integer',
+                  example: 450
+                },
+                usage: {
+                  type: 'object',
+                  properties: {
+                    prompt_tokens: {
+                      type: 'integer',
+                      example: 1200
+                    },
+                    completion_tokens: {
+                      type: 'integer',
+                      example: 450
+                    },
+                    total_tokens: {
+                      type: 'integer',
+                      example: 1650
+                    }
+                  }
+                }
+              }
+            },
+            processing_time_ms: {
+              type: 'integer',
+              example: 3500
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentQuestionRequest: {
+          type: 'object',
+          properties: {
+            question: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 1000,
+              example: 'What are the main conclusions of this research?'
+            },
+            model: {
+              type: 'string',
+              default: 'llama2',
+              example: 'llama2'
+            },
+            temperature: {
+              type: 'number',
+              minimum: 0,
+              maximum: 2,
+              default: 0.3,
+              example: 0.3
+            },
+            max_tokens: {
+              type: 'integer',
+              minimum: 50,
+              maximum: 2000,
+              default: 1000,
+              example: 1000
+            }
+          },
+          required: ['question']
+        },
+        DocumentQuestionResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                fileId: {
+                  type: 'string',
+                  format: 'uuid',
+                  example: '123e4567-e89b-12d3-a456-426614174000'
+                },
+                question: {
+                  type: 'string',
+                  example: 'What are the main conclusions of this research?'
+                },
+                answer: {
+                  type: 'string',
+                  example: 'Based on the document, the main conclusions are: 1) AI implementation leads to 30% efficiency improvement, 2) Cost reduction of 25% in operational expenses, 3) Enhanced customer satisfaction scores...'
+                },
+                model: {
+                  type: 'string',
+                  example: 'llama2'
+                },
+                usage: {
+                  type: 'object',
+                  properties: {
+                    prompt_tokens: {
+                      type: 'integer',
+                      example: 800
+                    },
+                    completion_tokens: {
+                      type: 'integer',
+                      example: 200
+                    },
+                    total_tokens: {
+                      type: 'integer',
+                      example: 1000
+                    }
+                  }
+                }
+              }
+            },
+            processing_time_ms: {
+              type: 'integer',
+              example: 2800
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentInfo: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: '123e4567-e89b-12d3-a456-426614174000'
+            },
+            fileName: {
+              type: 'string',
+              example: '123e4567-e89b-12d3-a456-426614174000.pdf'
+            },
+            size: {
+              type: 'integer',
+              example: 1024000
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            },
+            modifiedAt: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentInfoResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              $ref: '#/components/schemas/DocumentInfo'
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentListResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                documents: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/DocumentInfo'
+                  }
+                },
+                count: {
+                  type: 'integer',
+                  example: 3
+                }
+              }
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
+        },
+        DocumentDeleteResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            message: {
+              type: 'string',
+              example: 'File deleted successfully'
+            },
+            timestamp: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T00:00:00.000Z'
+            }
+          }
         }
       }
     },

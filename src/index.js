@@ -10,6 +10,7 @@ const swaggerUi = require('swagger-ui-express');
 // Import middleware and routes
 const { corsOptions, requestLogger, errorHandler, securityHeaders } = require('./middleware/auth');
 const ollamaRoutes = require('./routes/ollama');
+const documentRoutes = require('./routes/documents');
 const swaggerSpecs = require('./config/swagger');
 
 // Create Express app
@@ -84,6 +85,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 
 // API Routes
 app.use('/api/ollama', ollamaRoutes);
+app.use('/api/documents', documentRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -96,7 +98,12 @@ app.get('/', (req, res) => {
             chat: '/api/ollama/chat',
             generate: '/api/ollama/generate',
             models: '/api/ollama/models',
-            stats: '/api/ollama/stats'
+            stats: '/api/ollama/stats',
+            documentUpload: '/api/documents/upload',
+            documentSummarize: '/api/documents/{fileId}/summarize',
+            documentQuestion: '/api/documents/{fileId}/question',
+            documentList: '/api/documents',
+            documentInfo: '/api/documents/{fileId}'
         },
         documentation: '/api-docs',
         swagger_json: '/api-docs/swagger.json',
@@ -132,7 +139,13 @@ app.use((req, res) => {
             'GET /api/ollama/models/:model',
             'POST /api/ollama/models/pull',
             'DELETE /api/ollama/models/delete',
-            'GET /api/ollama/stats'
+            'GET /api/ollama/stats',
+            'POST /api/documents/upload',
+            'POST /api/documents/:fileId/summarize',
+            'POST /api/documents/:fileId/question',
+            'GET /api/documents',
+            'GET /api/documents/:fileId',
+            'DELETE /api/documents/:fileId'
         ]
     });
 });
