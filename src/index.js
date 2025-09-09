@@ -8,7 +8,7 @@ const fs = require('fs');
 const swaggerUi = require('swagger-ui-express');
 
 // Import middleware and routes
-const { corsOptions, requestLogger, errorHandler, securityHeaders } = require('./middleware/auth');
+const { corsOptions, sanitizeJsonInput, requestLogger, errorHandler, securityHeaders } = require('./middleware/auth');
 const ollamaRoutes = require('./routes/ollama');
 const documentRoutes = require('./routes/documents');
 const swaggerSpecs = require('./config/swagger');
@@ -62,9 +62,20 @@ app.use(securityHeaders);
 // Request logging
 app.use(requestLogger);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware - increased limits for long text generation
+app.use(express.json({ 
+    limit: '50mb',
+    verify: (req, res, buf, encoding) => {
+        // Store raw body for debugging
+        req.rawBody = buf;
+    },
+    strict: false, // Allow non-strict JSON parsing
+    type: 'application/json'
+}));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// JSON sanitization middleware - clean control characters from input
+app.use(sanitizeJsonInput);
 
 // Trust proxy for rate limiting
 app.set('trust proxy', 1);

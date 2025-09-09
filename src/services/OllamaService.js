@@ -98,9 +98,21 @@ class OllamaService {
             throw new Error('Messages array is required and must not be empty');
         }
 
+        // Handle long messages by truncating intelligently
+        const processedMessages = this.processLongMessages(messages, model);
+        
+        this.logger.info('Chat completion request', {
+            model,
+            originalMessageCount: messages.length,
+            processedMessageCount: processedMessages.length,
+            totalTokens: this.countTokens(processedMessages),
+            max_tokens,
+            temperature
+        });
+
         const requestData = {
             model,
-            messages,
+            messages: processedMessages,
             options: {
                 temperature,
                 num_predict: max_tokens
@@ -152,9 +164,20 @@ class OllamaService {
             throw new Error('Prompt is required');
         }
 
+        // Handle long prompts by truncating intelligently
+        const processedPrompt = this.processLongPrompt(prompt, model);
+        
+        this.logger.info('Text completion request', {
+            model,
+            originalPromptLength: prompt.length,
+            processedPromptLength: processedPrompt.length,
+            max_tokens,
+            temperature
+        });
+
         const requestData = {
             model,
-            prompt,
+            prompt: processedPrompt,
             options: {
                 temperature,
                 num_predict: max_tokens
@@ -316,14 +339,169 @@ class OllamaService {
     }
 
     /**
+     * Process long messages by truncating intelligently
+     * @param {Array} messages - Array of message objects
+     * @param {string} model - Model name
+     * @returns {Array} Processed messages
+     */
+    processLongMessages(messages, model) {
+        // Model-specific context limits (approximate)
+        const contextLimits = {
+            'llama2': 4096,
+            'llama3': 8192,
+            'gemma': 8192,
+            'gemma2': 8192,
+            'gemma3': 8192,
+            'mistral': 8192,
+            'codellama': 16384,
+            'phi': 2048,
+            'default': 4096
+        };
+
+        const contextLimit = contextLimits[model] || contextLimits.default;
+        const maxMessageTokens = Math.floor(contextLimit * 0.7); // Use 70% for messages, 30% for response
+        const currentTokens = this.countTokens(messages);
+
+        if (currentTokens <= maxMessageTokens) {
+            return messages;
+        }
+
+        this.logger.warn('Messages too long, truncating', {
+            model,
+            originalTokens: currentTokens,
+            maxTokens: maxMessageTokens,
+            contextLimit,
+            messageCount: messages.length
+        });
+
+        // Keep system messages and recent messages, truncate middle ones
+        const systemMessages = messages.filter(msg => msg.role === 'system');
+        const nonSystemMessages = messages.filter(msg => msg.role !== 'system');
+        
+        // Keep the last few messages (conversation context)
+        const recentMessages = nonSystemMessages.slice(-3); // Keep last 3 non-system messages
+        
+        // If still too long, truncate individual message content
+        const processedMessages = [...systemMessages];
+        let remainingTokens = maxMessageTokens - this.countTokens(systemMessages);
+        
+        for (const message of recentMessages) {
+            const messageTokens = this.countTokens(message.content);
+            if (messageTokens <= remainingTokens) {
+                processedMessages.push(message);
+                remainingTokens -= messageTokens;
+            } else {
+                // Truncate this message
+                const truncatedContent = this.truncateText(message.content, Math.floor(remainingTokens * 4));
+                processedMessages.push({
+                    ...message,
+                    content: truncatedContent + '\n[... message truncated due to length ...]'
+                });
+                break;
+            }
+        }
+
+        this.logger.info('Messages processed', {
+            originalCount: messages.length,
+            processedCount: processedMessages.length,
+            tokensSaved: currentTokens - this.countTokens(processedMessages)
+        });
+
+        return processedMessages;
+    }
+
+    /**
+     * Truncate text to approximate character limit
+     * @param {string} text - Text to truncate
+     * @param {number} maxChars - Maximum characters
+     * @returns {string} Truncated text
+     */
+    truncateText(text, maxChars) {
+        if (text.length <= maxChars) {
+            return text;
+        }
+        
+        // Keep beginning and end
+        const startChars = Math.floor(maxChars * 0.8);
+        const endChars = maxChars - startChars - 50; // Reserve 50 chars for truncation notice
+        
+        return text.substring(0, startChars) + 
+               '\n[... truncated ...]\n' +
+               text.substring(text.length - endChars);
+    }
+
+    /**
+     * Process long prompts by truncating intelligently
+     * @param {string} prompt - Input prompt
+     * @param {string} model - Model name
+     * @returns {string} Processed prompt
+     */
+    processLongPrompt(prompt, model) {
+        // Model-specific context limits (approximate)
+        const contextLimits = {
+            'llama2': 4096,
+            'llama3': 8192,
+            'gemma': 8192,
+            'gemma2': 8192,
+            'gemma3': 8192,
+            'mistral': 8192,
+            'codellama': 16384,
+            'phi': 2048,
+            'default': 4096
+        };
+
+        const contextLimit = contextLimits[model] || contextLimits.default;
+        const maxPromptTokens = Math.floor(contextLimit * 0.7); // Use 70% for prompt, 30% for response
+        const currentTokens = this.countTokens(prompt);
+
+        if (currentTokens <= maxPromptTokens) {
+            return prompt;
+        }
+
+        this.logger.warn('Prompt too long, truncating', {
+            model,
+            originalTokens: currentTokens,
+            maxTokens: maxPromptTokens,
+            contextLimit
+        });
+
+        // Intelligent truncation: keep the beginning and end
+        const maxChars = maxPromptTokens * 4; // Rough character estimate
+        const truncationPoint = Math.floor(maxChars * 0.8); // Keep 80% from start
+        const endPoint = maxChars - truncationPoint - 100; // Reserve 100 chars for ending
+
+        if (prompt.length <= maxChars) {
+            return prompt;
+        }
+
+        const truncated = prompt.substring(0, truncationPoint) + 
+                         '\n\n[... content truncated due to length ...]\n\n' +
+                         prompt.substring(prompt.length - endPoint);
+
+        this.logger.info('Prompt truncated', {
+            originalLength: prompt.length,
+            truncatedLength: truncated.length,
+            tokensSaved: currentTokens - this.countTokens(truncated)
+        });
+
+        return truncated;
+    }
+
+    /**
      * Simple token counting (approximate)
      * @param {string|Array} input - Input to count tokens for
      * @returns {number} Approximate token count
      */
     countTokens(input) {
         if (typeof input === 'string') {
-            // Rough approximation: 1 token ≈ 4 characters
-            return Math.ceil(input.length / 4);
+            // More accurate token estimation
+            const text = input || '';
+            const words = text.split(/\s+/).filter(word => word.length > 0).length;
+            const chars = text.length;
+            
+            // Use a more sophisticated estimation
+            // Average: 1.3 tokens per word + 0.25 tokens per character
+            return Math.ceil((words * 1.3) + (chars * 0.25));
         } else if (Array.isArray(input)) {
             // For message arrays, count content
             return input.reduce((total, message) => {

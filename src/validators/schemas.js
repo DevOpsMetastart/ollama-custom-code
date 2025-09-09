@@ -15,7 +15,7 @@ const schemas = {
             })
         ).min(1).required(),
         temperature: Joi.number().min(0).max(2).optional().default(0.7),
-        max_tokens: Joi.number().integer().min(1).max(8192).optional().default(2048),
+        max_tokens: Joi.number().integer().min(1).max(32768).optional().default(2048),
         stream: Joi.boolean().optional().default(false),
         top_p: Joi.number().min(0).max(1).optional(),
         top_k: Joi.number().integer().min(1).optional(),
@@ -31,7 +31,7 @@ const schemas = {
         model: Joi.string().optional().default('llama2'),
         prompt: Joi.string().required(),
         temperature: Joi.number().min(0).max(2).optional().default(0.7),
-        max_tokens: Joi.number().integer().min(1).max(8192).optional().default(2048),
+        max_tokens: Joi.number().integer().min(1).max(32768).optional().default(2048),
         stream: Joi.boolean().optional().default(false),
         top_p: Joi.number().min(0).max(1).optional(),
         top_k: Joi.number().integer().min(1).optional(),

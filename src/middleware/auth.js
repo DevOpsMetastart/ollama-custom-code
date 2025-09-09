@@ -89,6 +89,49 @@ const corsOptions = {
 };
 
 /**
+ * JSON sanitization middleware
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+function sanitizeJsonInput(req, res, next) {
+    if (req.body && typeof req.body === 'object') {
+        // Sanitize string fields that might contain control characters
+        const sanitizeString = (str) => {
+            if (typeof str !== 'string') return str;
+            
+            // Replace control characters with safe alternatives
+            return str
+                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars except \t, \n, \r
+                .replace(/\r\n/g, '\n') // Normalize line endings
+                .replace(/\r/g, '\n') // Convert \r to \n
+                .replace(/\t/g, '    ') // Convert tabs to spaces
+                .trim(); // Remove leading/trailing whitespace
+        };
+
+        // Recursively sanitize all string values
+        const sanitizeObject = (obj) => {
+            if (typeof obj === 'string') {
+                return sanitizeString(obj);
+            } else if (Array.isArray(obj)) {
+                return obj.map(sanitizeObject);
+            } else if (obj && typeof obj === 'object') {
+                const sanitized = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    sanitized[key] = sanitizeObject(value);
+                }
+                return sanitized;
+            }
+            return obj;
+        };
+
+        req.body = sanitizeObject(req.body);
+    }
+    
+    next();
+}
+
+/**
  * Request logging middleware
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -128,6 +171,16 @@ function errorHandler(err, req, res, next) {
         });
     }
     
+    // Handle JSON parsing errors
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid JSON',
+            message: 'Request body contains invalid JSON. Please check for unescaped quotes, control characters, or malformed JSON syntax.',
+            details: err.message
+        });
+    }
+    
     // Handle validation errors
     if (err.name === 'ValidationError') {
         return res.status(400).json({
@@ -151,7 +204,8 @@ function errorHandler(err, req, res, next) {
     res.status(500).json({
         success: false,
         error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+        message: err.message || 'Something went wrong',
+        timestamp: new Date().toISOString()
     });
 }
 
@@ -178,6 +232,7 @@ module.exports = {
     authenticateApiKey,
     rateLimiter,
     corsOptions,
+    sanitizeJsonInput,
     requestLogger,
     errorHandler,
     securityHeaders
