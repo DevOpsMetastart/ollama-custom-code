@@ -101,7 +101,10 @@ class DocumentService {
         try {
             const fileId = uuidv4();
             const fileExtension = path.extname(file.originalname);
-            const fileName = `${fileId}${fileExtension}`;
+            
+            // Create a readable filename
+            const readableFileName = this.generateReadableFileName(file.originalname, fileId);
+            const fileName = `${readableFileName}${fileExtension}`;
             const filePath = path.join(this.uploadsDir, fileName);
 
             await fs.writeFile(filePath, file.buffer);
@@ -110,6 +113,7 @@ class DocumentService {
                 id: fileId,
                 originalName: file.originalname,
                 fileName: fileName,
+                readableFileName: readableFileName,
                 filePath: filePath,
                 size: file.size,
                 mimeType: file.mimetype,
@@ -123,6 +127,51 @@ class DocumentService {
         } catch (error) {
             this.logger.error('Failed to save file', { error: error.message, stack: error.stack });
             throw new Error(`Failed to save file: ${error.message}`);
+        }
+    }
+
+    /**
+     * Generate a readable filename from original name and file ID
+     * @param {string} originalName - Original filename
+     * @param {string} fileId - Unique file ID
+     * @returns {string} Readable filename
+     */
+    generateReadableFileName(originalName, fileId) {
+        try {
+            // Remove extension from original name
+            const nameWithoutExt = path.parse(originalName).name;
+            
+            // Clean the filename (remove special characters, spaces, etc.)
+            const cleanName = nameWithoutExt
+                .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters
+                .replace(/\s+/g, '-') // Replace spaces with hyphens
+                .replace(/-+/g, '-') // Replace multiple hyphens with single
+                .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+                .toLowerCase(); // Convert to lowercase
+            
+            // Limit length to 30 characters to leave room for UUID
+            const truncatedName = cleanName.length > 30 
+                ? cleanName.substring(0, 30).replace(/-$/, '') 
+                : cleanName;
+            
+            // Get current date for timestamp
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
+            
+            // Create readable filename: name-date-time-FULL-UUID
+            const readableName = truncatedName 
+                ? `${truncatedName}-${dateStr}-${timeStr}-${fileId}`
+                : `document-${dateStr}-${timeStr}-${fileId}`;
+            
+            return readableName;
+            
+        } catch (error) {
+            // Fallback to simple format if anything goes wrong
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
+            return `document-${dateStr}-${timeStr}-${fileId}`;
         }
     }
 
@@ -520,7 +569,8 @@ ANSWER:`;
     async deleteFile(fileId) {
         try {
             const files = await fs.readdir(this.uploadsDir);
-            const file = files.find(f => f.startsWith(fileId));
+            // Look for files that contain the fileId (since readable names now include the ID at the end)
+            const file = files.find(f => f.includes(fileId));
             
             if (!file) {
                 return { success: false, error: 'File not found' };
@@ -550,7 +600,8 @@ ANSWER:`;
     async getFileInfo(fileId) {
         try {
             const files = await fs.readdir(this.uploadsDir);
-            const file = files.find(f => f.startsWith(fileId));
+            // Look for files that contain the fileId
+            const file = files.find(f => f.includes(fileId));
             
             if (!file) {
                 return { success: false, error: 'File not found' };
@@ -559,11 +610,17 @@ ANSWER:`;
             const filePath = path.join(this.uploadsDir, file);
             const stats = await fs.stat(filePath);
 
+            // Extract readable name from filename
+            const fileExtension = path.extname(file);
+            const fileNameWithoutExt = path.basename(file, fileExtension);
+            const readableName = fileNameWithoutExt;
+
             return {
                 success: true,
                 fileInfo: {
                     id: fileId,
                     fileName: file,
+                    readableFileName: readableName,
                     size: stats.size,
                     createdAt: stats.birthtime,
                     modifiedAt: stats.mtime

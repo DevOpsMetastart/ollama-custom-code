@@ -392,9 +392,35 @@ class DocumentController {
                 const filePath = path.join(uploadsDir, file);
                 const stats = await fs.stat(filePath);
                 
+                // Extract file ID from the filename
+                const fileExtension = path.extname(file);
+                const fileNameWithoutExt = path.basename(file, fileExtension);
+                
+                let fileId;
+                // Check if it's a new readable format or old UUID format
+                if (fileNameWithoutExt.includes('-') && fileNameWithoutExt.length > 50) {
+                    // New readable format: extract the full UUID from the end
+                    // Format: name-date-time-UUID
+                    const parts = fileNameWithoutExt.split('-');
+                    // The last part should be the full UUID (36 characters with hyphens)
+                    // But we need to reconstruct it properly
+                    const uuidPart = parts.slice(-5).join('-'); // Last 5 parts should be the UUID
+                    if (uuidPart.length === 36) {
+                        fileId = uuidPart;
+                    } else {
+                        // Fallback: try to find UUID pattern in the filename
+                        const uuidMatch = fileNameWithoutExt.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                        fileId = uuidMatch ? uuidMatch[0] : parts[parts.length - 1];
+                    }
+                } else {
+                    // Old format: filename is just the UUID
+                    fileId = fileNameWithoutExt;
+                }
+                
                 documentList.push({
-                    id: file.split('.')[0], // Remove extension to get ID
+                    id: fileId,
                     fileName: file,
+                    readableFileName: fileNameWithoutExt,
                     size: stats.size,
                     createdAt: stats.birthtime,
                     modifiedAt: stats.mtime
