@@ -384,7 +384,7 @@ class OllamaService {
         // Model-specific context limits (approximate)
         const contextLimits = {
             'llama2': 4096,
-            'llama3': 8192,
+            'llama2': 8192,
             'gemma': 8192,
             'gemma2': 8192,
             'gemma3': 8192,
@@ -480,9 +480,9 @@ class OllamaService {
         // Model complexity multipliers (larger models need more time)
         const modelMultipliers = {
             'llama2': 1.0,
-            'llama3': 1.3,
-            'llama3.1': 1.3,
-            'llama3.2': 1.3,
+            'llama2': 1.3,
+            'llama2.1': 1.3,
+            'llama2.2': 1.3,
             'gemma': 1.2,
             'gemma2': 1.2,
             'gemma3': 1.2,
@@ -533,7 +533,7 @@ class OllamaService {
         // Model-specific context limits (approximate)
         const contextLimits = {
             'llama2': 4096,
-            'llama3': 8192,
+            'llama2': 8192,
             'gemma': 8192,
             'gemma2': 8192,
             'gemma3': 8192,

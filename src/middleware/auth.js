@@ -1,6 +1,8 @@
 const rateLimit = require('express-rate-limit');
 const { validateApiKey } = require('../validators/schemas');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 /**
  * API Key authentication middleware
  * @param {Object} req - Express request object

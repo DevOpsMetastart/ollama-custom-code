@@ -11,6 +11,7 @@ const swaggerUi = require('swagger-ui-express');
 const { corsOptions, sanitizeJsonInput, requestLogger, errorHandler, securityHeaders } = require('./middleware/auth');
 const ollamaRoutes = require('./routes/ollama');
 const documentRoutes = require('./routes/documents');
+const voiceRoutes = require('./routes/voice');
 const swaggerSpecs = require('./config/swagger');
 
 // Create Express app
@@ -97,6 +98,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 // API Routes
 app.use('/api/ollama', ollamaRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/voice', voiceRoutes);
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -105,6 +110,7 @@ app.get('/', (req, res) => {
         message: 'Ollama API Controller',
         version: '1.0.0',
         endpoints: {
+            voice_assistant_ui: '/index.html',
             health: '/api/ollama/health',
             chat: '/api/ollama/chat',
             generate: '/api/ollama/generate',
