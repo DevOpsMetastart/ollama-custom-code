@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Assistant with Ollama</title>
+</head>
+<body>
+    <button id="recordButton">Start Recording</button>
+    <p id="status"></p>
+    <p id="transcription"></p>
+    <p id="ollamaResponse"></p>
+    <script src="client.js"></script>
+    <script>
+const recordButton = document.getElementById('recordButton');
+const statusElement = document.getElementById('status');
+const transcriptionElement = document.getElementById('transcription');
+const ollamaResponseElement = document.getElementById('ollamaResponse');
+
+let mediaRecorder;
+let audioChunks = [];
+
+recordButton.addEventListener('click', async () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        recordButton.textContent = 'Start Recording';
+        statusElement.textContent = 'Processing...';
+    } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+
+        recordButton.textContent = 'Stop Recording';
+        statusElement.textContent = 'Listening...';
+        transcriptionElement.textContent = '';
+        ollamaResponseElement.textContent = '';
+        
+        mediaRecorder.ondataavailable = event => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            audioChunks = [];
+            
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+            
+            try {
+                // Send the audio blob to your Node.js server
+                const response = await fetch('/api/voice/process', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-KEY': '1234' // Replace with your actual API key
+                    },
+                    body: formData,
+                });
+                const result = await response.json();
+                
+                transcriptionElement.textContent = `Transcription: ${result.data.transcription}`;
+                ollamaResponseElement.textContent = `AI: ${result.data.response}`;
+                statusElement.textContent = 'Ready';
+
+            } catch (error) {
+                console.error('Error uploading audio:', error);
+                statusElement.textContent = 'Error processing audio.';
+            }
+        };
+    }
+});
+    </script>
+</body>
+</html>
