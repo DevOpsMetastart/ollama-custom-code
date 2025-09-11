@@ -109,13 +109,7 @@ export const authenticateApiKey = (
  * CORS options configuration
  */
 export const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Allow all origins in production (Railway deployment)
-    callback(null, true);
-  },
+  origin: true,
   credentials: true,
   optionsSuccessStatus: 200
 };
