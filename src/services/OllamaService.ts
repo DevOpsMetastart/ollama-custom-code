@@ -31,6 +31,7 @@ export class OllamaService {
       timeout: this.timeout,
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`
       }
     });
 
@@ -106,7 +107,6 @@ export class OllamaService {
         messages,
         temperature = parseFloat(process.env['DEFAULT_TEMPERATURE'] || '0.7'),
         max_tokens = parseInt(process.env['DEFAULT_MAX_TOKENS'] || '2048'),
-        stream = false
       } = params;
 
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -125,14 +125,32 @@ export class OllamaService {
           temperature,
           num_predict: max_tokens
         },
-        stream
+        stream: true
       };
 
       const response = await this.retryRequest(
-        (options) => this.client.post('/api/chat', requestData, options),
+        (options) => this.client.post('/api/chat', requestData, { ...options, responseType: 'stream' }),
         {},
         correlationId
       );
+
+      let fullContent = '';
+      let buffer = '';
+      for await (const chunk of response.data) {
+        buffer += chunk.toString();
+        let boundary = buffer.indexOf('\n');
+        while (boundary !== -1) {
+          const jsonStr = buffer.substring(0, boundary);
+          buffer = buffer.substring(boundary + 1);
+          if (jsonStr) {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.message && parsed.message.content) {
+              fullContent += parsed.message.content;
+            }
+          }
+          boundary = buffer.indexOf('\n');
+        }
+      }
 
       const duration = Date.now() - startTime;
       logOperation('Chat completion completed', correlationId, 'generateChatCompletion', {
@@ -140,19 +158,19 @@ export class OllamaService {
         duration: `${duration}ms`,
         usage: {
           prompt_tokens: this.countTokens(messages),
-          completion_tokens: response.data.message?.content?.length || 0,
-          total_tokens: this.countTokens(messages) + (response.data.message?.content?.length || 0)
+          completion_tokens: fullContent.length,
+          total_tokens: this.countTokens(messages) + fullContent.length
         }
       });
 
       return {
         success: true,
-        data: response.data,
+        data: { message: { content: fullContent } },
         model,
         usage: {
           prompt_tokens: this.countTokens(messages),
-          completion_tokens: response.data.message?.content?.length || 0,
-          total_tokens: this.countTokens(messages) + (response.data.message?.content?.length || 0)
+          completion_tokens: fullContent.length,
+          total_tokens: this.countTokens(messages) + fullContent.length
         }
       };
     } catch (error) {

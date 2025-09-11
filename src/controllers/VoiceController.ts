@@ -5,6 +5,8 @@ import { ApiResponse } from '../types/common.types';
 import { logOperation } from '../lib/logger.lib';
 import { asyncHandler } from '../middleware/error-handler.middleware';
 import { HTTP_STATUS } from '../constants/http-status.constants';
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Voice Controller - Handles voice processing endpoints
@@ -54,10 +56,17 @@ export class VoiceController {
       size: req.file.size
     });
 
-    // In a real implementation, you would save the file and get the path
-    const audioFilePath = `/tmp/${req.file.filename}`;
+    const tempDir = path.join('/tmp');
+    const audioFilePath = path.join(tempDir, `${Date.now()}-${req.file.originalname}`);
+    let result;
 
-    const result = await this.voiceService.transcribeAudio(audioFilePath, context);
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(audioFilePath, req.file.buffer);
+      result = await this.voiceService.transcribeAudio(audioFilePath, context);
+    } finally {
+      await fs.unlink(audioFilePath).catch(err => console.error(`Failed to delete temp file: ${audioFilePath}`, err));
+    }
 
     const response: ApiResponse = {
       success: true,
@@ -108,10 +117,17 @@ export class VoiceController {
       size: req.file.size
     });
 
-    // In a real implementation, you would save the file and get the path
-    const audioFilePath = `/tmp/${req.file.filename}`;
+    const tempDir = path.join('/tmp');
+    const audioFilePath = path.join(tempDir, `${Date.now()}-${req.file.originalname}`);
+    let result;
 
-    const result = await this.voiceService.processVoiceInput(audioFilePath, context);
+    try {
+      await fs.mkdir(tempDir, { recursive: true });
+      await fs.writeFile(audioFilePath, req.file.buffer);
+      result = await this.voiceService.processVoiceInput(audioFilePath, context);
+    } finally {
+      await fs.unlink(audioFilePath).catch(err => console.error(`Failed to delete temp file: ${audioFilePath}`, err));
+    }
 
     const response: ApiResponse = {
       success: true,

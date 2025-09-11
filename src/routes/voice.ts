@@ -58,7 +58,7 @@ const validationMiddleware = (schema: any) => {
 
 /**
  * @swagger
- * /api/voice/transcribe:
+ * /api/voice/upload-audio:
  *   post:
  *     summary: Transcribe audio file
  *     description: Convert audio file to text using speech recognition
@@ -112,7 +112,7 @@ const validationMiddleware = (schema: any) => {
  *         description: Internal server error
  */
 router.post(
-  '/transcribe',
+  '/upload-audio',
   rateLimitMiddleware,
   authenticateApiKey,
   upload.single('audio'),

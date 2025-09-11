@@ -1,10 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { spawn } from 'child_process';
 import { logWithContext, logError, logOperation } from '../lib/logger.lib';
 import { AppError, FileError, ExternalServiceError } from '../lib/errors.lib';
 import { ServiceContext } from '../types/common.types';
 import { OllamaService } from './OllamaService';
+import { nodewhisper } from 'nodejs-whisper';
 
 /**
  * Voice Service - Handles voice transcription and processing
@@ -42,7 +42,7 @@ export class VoiceService {
       // Check if file exists
       await fs.access(audioFilePath);
 
-      // Use whisper.cpp or similar for transcription
+      // Use whisper for transcription
       const transcription = await this.runWhisperTranscription(audioFilePath, correlationId);
 
       logOperation('Audio transcription completed', correlationId, 'transcribeAudio', {
@@ -167,47 +167,18 @@ export class VoiceService {
     audioFilePath: string,
     correlationId: string
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      // This is a placeholder implementation
-      // In a real implementation, you would use whisper.cpp or similar
-      const whisperProcess = spawn('whisper', [audioFilePath, '--output_format', 'txt'], {
-        stdio: ['pipe', 'pipe', 'pipe']
+    try {
+      const modelName = process.env.WHISPER_MODEL_NAME || 'small.en';
+      const transcription = await nodewhisper(audioFilePath, {
+        modelName: modelName,
+        autoDownloadModelName: modelName,
       });
-
-      let output = '';
-      let errorOutput = '';
-
-      whisperProcess.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      whisperProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-
-      whisperProcess.on('close', (code) => {
-        if (code === 0) {
-          // For now, return a placeholder since whisper might not be installed
-          resolve('This is a placeholder transcription. Please install whisper.cpp for actual transcription.');
-        } else {
-          reject(new FileError(
-            `Whisper transcription failed: ${errorOutput}`,
-            correlationId
-          ));
-        }
-      });
-
-      whisperProcess.on('error', (error) => {
-        // If whisper is not installed, return placeholder
-        if (error.message.includes('ENOENT')) {
-          resolve('This is a placeholder transcription. Please install whisper.cpp for actual transcription.');
-        } else {
-          reject(new FileError(
-            `Whisper process error: ${error.message}`,
-            correlationId
-          ));
-        }
-      });
-    });
+      return transcription;
+    } catch (error) {
+      throw new FileError(
+        `Whisper transcription failed: ${error}`,
+        correlationId
+      );
+    }
   }
 }
