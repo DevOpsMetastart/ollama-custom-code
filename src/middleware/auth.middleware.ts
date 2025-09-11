@@ -109,9 +109,11 @@ export const authenticateApiKey = (
  * CORS options configuration
  */
 export const corsOptions = {
-  origin: true,
-  credentials: true,
-  optionsSuccessStatus: 200
+  origin: '*',
+  credentials: false,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-Requested-With', 'Accept', 'Origin']
 };
 
 /**
