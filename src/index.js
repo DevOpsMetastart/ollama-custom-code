@@ -11,6 +11,7 @@ const swaggerUi = require('swagger-ui-express');
 const { corsOptions, sanitizeJsonInput, requestLogger, errorHandler, securityHeaders } = require('./middleware/auth');
 const ollamaRoutes = require('./routes/ollama');
 const documentRoutes = require('./routes/documents');
+const voiceRoutes = require('./routes/voice');
 const swaggerSpecs = require('./config/swagger');
 
 // Create Express app
@@ -21,6 +22,12 @@ const PORT = process.env.PORT || 3000;
 const logsDir = path.join(__dirname, '..', 'logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Security middleware
@@ -97,6 +104,10 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 // API Routes
 app.use('/api/ollama', ollamaRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/voice', voiceRoutes);
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -105,6 +116,7 @@ app.get('/', (req, res) => {
         message: 'Ollama API Controller',
         version: '1.0.0',
         endpoints: {
+            voice_assistant_ui: '/index.html',
             health: '/api/ollama/health',
             chat: '/api/ollama/chat',
             generate: '/api/ollama/generate',
