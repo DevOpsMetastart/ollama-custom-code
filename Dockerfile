@@ -58,6 +58,8 @@ RUN npm rebuild
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
+# Copy source files for Swagger JSDoc comments
+COPY --from=builder /app/src ./src
 
 # Create necessary directories
 RUN mkdir -p logs uploads
