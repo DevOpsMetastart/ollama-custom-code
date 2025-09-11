@@ -106,39 +106,41 @@ export const authenticateApiKey = (
 };
 
 /**
- * CORS options configuration
+ * CORS configuration
  */
+const isProduction = process.env['NODE_ENV'] === 'production';
 export const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // For Railway deployment, be more permissive
-    if (process.env['RAILWAY_PUBLIC_DOMAIN'] || process.env['NODE_ENV'] === 'production') {
-      return callback(null, true);
-    }
-    
-    // Allow all origins
-    callback(null, true);
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+      // In production (Railway), allow all origins
+      if (isProduction) {
+          return callback(null, true);
+      } 
+      
+      // In development, use allowed origins
+      const allowedOrigins = process.env['ALLOWED_ORIGINS']?.split(',') || ['http://localhost:3000', 'http://localhost:3001'];
+      
+      // In production, be more permissive with CORS for Railway deployment
+      if (isProduction) {
+        console.log('isProduction', isProduction);
+          // Allow all origins in production for Railway deployment
+          // You can restrict this later by setting specific ALLOWED_ORIGINS
+          return callback(null, true);
+      }
+      
+      // In development, use strict CORS
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+      } else {
+          callback(new Error('Not allowed by CORS'));
+      }
   },
-  credentials: false,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'x-api-key', 
-    'X-Requested-With', 
-    'Accept', 
-    'Origin',
-    'X-Correlation-ID',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods'
-  ],
-  exposedHeaders: ['X-Correlation-ID'],
-  preflightContinue: false,
-  maxAge: 86400 // 24 hours
+  credentials: true,
+  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-Key']
 };
 
 /**

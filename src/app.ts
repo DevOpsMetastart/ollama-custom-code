@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express, { Application } from 'express';
+import express, { Request, Response, NextFunction, Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -66,18 +66,18 @@ app.use(helmet({
 // CORS middleware
 app.use(cors(corsOptions));
 
-// Additional CORS handling for Railway
-app.use((req, res, next): void => {
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
+// Additional CORS headers for Railway deployment
+app.use((req: Request, res: Response, next: NextFunction) => {
+    // Set CORS headers for all responses
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, X-Requested-With, Accept, Origin, X-Correlation-ID');
-    res.header('Access-Control-Max-Age', '86400');
-    res.status(200).end();
-    return;
-  }
-  next();
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-api-key, X-API-Key');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        next();
+    }
 });
 
 // Compression middleware
