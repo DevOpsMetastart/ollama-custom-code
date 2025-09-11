@@ -8,7 +8,7 @@ const ollama = new Ollama();
 
 // Configuration
 const WHISPER_MODEL = 'base.en'; // Specify the Whisper model to download
-const WHISPER_MODEL_PATH = '/home/rohitrathod/Desktop/ollama-custom-code/node_modules/nodejs-whisper/cpp/whisper.cpp/models/ggml-base.en.bin';
+const WHISPER_MODEL_PATH = 'node_modules/nodejs-whisper/cpp/whisper.cpp/models/ggml-base.en.bin';
 const OLLAMA_MODEL = 'llama2';    // The Ollama model to use
 
 // Function to handle the voice input
@@ -49,7 +49,9 @@ async function processVoiceInput(req, res) {
     res.status(500).json({ transcription: null, response: 'I am sorry, I am having trouble.' });
   } finally {
     // Clean up the uploaded audio file
-    fs.unlinkSync(audioFilePath);
+    if (fs.existsSync(audioFilePath)) {
+      fs.unlinkSync(audioFilePath);
+    }
   }
 }
 
