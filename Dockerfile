@@ -1,5 +1,6 @@
-# Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+# Multi-stage build for smaller production image
+# Stage 1: Build stage
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -17,20 +18,46 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies for building native modules)
+# Install all dependencies (including dev dependencies for building)
 RUN npm ci --include=dev
 
 # Build native modules
 RUN npm rebuild
 
-# Remove dev dependencies after build
-RUN npm prune --production
-
-# Clean npm cache
-RUN npm cache clean --force
-
 # Copy source code
 COPY . .
+
+# Build TypeScript code
+RUN npm run build
+
+# Stage 2: Production stage
+FROM node:18-alpine AS production
+
+# Set working directory
+WORKDIR /app
+
+# Install only runtime dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    gcc \
+    libc-dev \
+    libffi-dev \
+    openssl-dev
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Build native modules for production
+RUN npm rebuild
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 
 # Create necessary directories
 RUN mkdir -p logs uploads
