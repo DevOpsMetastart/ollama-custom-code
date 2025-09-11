@@ -1,6 +1,5 @@
-# Multi-stage build for smaller production image
-# Stage 1: Build stage
-FROM node:18-alpine AS builder
+# Use Node.js 18 Alpine for smaller image size
+FROM node:18-alpine
 
 # Set working directory
 WORKDIR /app
@@ -30,36 +29,11 @@ COPY . .
 # Build TypeScript code
 RUN npm run build
 
-# Stage 2: Production stage
-FROM node:18-alpine AS production
+# Remove dev dependencies after build
+RUN npm prune --production
 
-# Set working directory
-WORKDIR /app
-
-# Install only runtime dependencies for native modules
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    gcc \
-    libc-dev \
-    libffi-dev \
-    openssl-dev
-
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --only=production
-
-# Build native modules for production
-RUN npm rebuild
-
-# Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
-# Copy source files for Swagger JSDoc comments
-COPY --from=builder /app/src ./src
+# Clean npm cache
+RUN npm cache clean --force
 
 # Create necessary directories
 RUN mkdir -p logs uploads
