@@ -17,12 +17,6 @@ const options: swaggerJsdoc.Options = {
         url: 'https://opensource.org/licenses/MIT'
       }
     },
-    servers: [
-      {
-        url: '/',
-        description: 'Current server (works in all environments)'
-      }
-    ],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
