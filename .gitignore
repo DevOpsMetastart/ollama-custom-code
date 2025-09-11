@@ -206,6 +206,10 @@ Thumbs.db
 dist/
 build/
 
+# JavaScript files (TypeScript only)
+*.js
+*.js.map
+
 # Documentation build
 docs/
 

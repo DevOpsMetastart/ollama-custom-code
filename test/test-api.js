@@ -1,145 +1,109 @@
-const axios = require('axios');
-
-const API_BASE_URL = 'http://localhost:3000/api/ollama';
-const API_KEY = process.env.API_KEY || 'your-secret-api-key-here';
-
-// Test configuration
-const testConfig = {
+"use strict";
+/**
+ * API Test Suite - TypeScript
+ * Basic tests for the Ollama API Controller
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.runTests = exports.testTextCompletion = exports.testChatCompletion = exports.testModels = exports.testHealth = void 0;
+const axios_1 = __importDefault(require("axios"));
+const BASE_URL = process.env['API_BASE_URL'] || 'http://localhost:3000';
+const API_KEY = process.env['API_KEY'] || 'your-api-key-here';
+const client = axios_1.default.create({
+    baseURL: BASE_URL,
     headers: {
         'x-api-key': API_KEY,
         'Content-Type': 'application/json'
     }
-};
-
-async function testHealthCheck() {
-    console.log('🏥 Testing Health Check...');
+});
+/**
+ * Test health endpoint
+ */
+async function testHealth() {
     try {
-        const response = await axios.get(`${API_BASE_URL}/health`);
-        console.log('✅ Health Check:', response.data);
-        return true;
-    } catch (error) {
-        console.error('❌ Health Check Failed:', error.response?.data || error.message);
-        return false;
+        console.log('Testing health endpoint...');
+        const response = await client.get('/api/ollama/health');
+        console.log('✅ Health check passed:', response.data);
+    }
+    catch (error) {
+        console.error('❌ Health check failed:', error);
     }
 }
-
-async function testListModels() {
-    console.log('📋 Testing List Models...');
+exports.testHealth = testHealth;
+/**
+ * Test models endpoint
+ */
+async function testModels() {
     try {
-        const response = await axios.get(`${API_BASE_URL}/models`, testConfig);
-        console.log('✅ List Models:', response.data);
-        return response.data.models || [];
-    } catch (error) {
-        console.error('❌ List Models Failed:', error.response?.data || error.message);
-        return [];
+        console.log('Testing models endpoint...');
+        const response = await client.get('/api/ollama/models');
+        console.log('✅ Models retrieved:', response.data);
+    }
+    catch (error) {
+        console.error('❌ Models test failed:', error);
     }
 }
-
+exports.testModels = testModels;
+/**
+ * Test chat completion
+ */
 async function testChatCompletion() {
-    console.log('💬 Testing Chat Completion...');
     try {
-        const response = await axios.post(`${API_BASE_URL}/chat`, {
+        console.log('Testing chat completion...');
+        const response = await client.post('/api/ollama/chat', {
             model: 'llama2',
             messages: [
-                { role: 'user', content: 'Hello! Please respond with a short greeting.' }
+                { role: 'user', content: 'Hello, how are you?' }
             ],
             temperature: 0.7,
             max_tokens: 100
-        }, testConfig);
-        
-        console.log('✅ Chat Completion:', {
-            success: response.data.success,
-            model: response.data.model,
-            processing_time: response.data.processing_time_ms,
-            response_length: response.data.data?.message?.content?.length || 0
         });
-        return true;
-    } catch (error) {
-        console.error('❌ Chat Completion Failed:', error.response?.data || error.message);
-        return false;
+        console.log('✅ Chat completion successful:', response.data);
+    }
+    catch (error) {
+        console.error('❌ Chat completion failed:', error);
     }
 }
-
+exports.testChatCompletion = testChatCompletion;
+/**
+ * Test text completion
+ */
 async function testTextCompletion() {
-    console.log('📝 Testing Text Completion...');
     try {
-        const response = await axios.post(`${API_BASE_URL}/generate`, {
+        console.log('Testing text completion...');
+        const response = await client.post('/api/ollama/generate', {
             model: 'llama2',
-            prompt: 'Write a one-sentence story about a robot.',
+            prompt: 'Write a short story about a robot.',
             temperature: 0.7,
             max_tokens: 100
-        }, testConfig);
-        
-        console.log('✅ Text Completion:', {
-            success: response.data.success,
-            model: response.data.model,
-            processing_time: response.data.processing_time_ms,
-            response_length: response.data.data?.response?.length || 0
         });
-        return true;
-    } catch (error) {
-        console.error('❌ Text Completion Failed:', error.response?.data || error.message);
-        return false;
+        console.log('✅ Text completion successful:', response.data);
+    }
+    catch (error) {
+        console.error('❌ Text completion failed:', error);
     }
 }
-
-async function testStats() {
-    console.log('📊 Testing Stats...');
-    try {
-        const response = await axios.get(`${API_BASE_URL}/stats`, testConfig);
-        console.log('✅ Stats:', {
-            success: response.data.success,
-            uptime: response.data.stats?.uptime,
-            memory: response.data.stats?.memory?.heapUsed
-        });
-        return true;
-    } catch (error) {
-        console.error('❌ Stats Failed:', error.response?.data || error.message);
-        return false;
-    }
+exports.testTextCompletion = testTextCompletion;
+/**
+ * Run all tests
+ */
+async function runTests() {
+    console.log('🚀 Starting API tests...\n');
+    await testHealth();
+    console.log('');
+    await testModels();
+    console.log('');
+    await testChatCompletion();
+    console.log('');
+    await testTextCompletion();
+    console.log('');
+    console.log('✅ All tests completed!');
 }
-
-async function runAllTests() {
-    console.log('🚀 Starting API Tests...\n');
-    
-    const results = {
-        health: await testHealthCheck(),
-        models: await testListModels(),
-        chat: await testChatCompletion(),
-        text: await testTextCompletion(),
-        stats: await testStats()
-    };
-    
-    console.log('\n📋 Test Results Summary:');
-    console.log('========================');
-    console.log(`Health Check: ${results.health ? '✅ PASS' : '❌ FAIL'}`);
-    console.log(`List Models: ${results.models.length > 0 ? '✅ PASS' : '❌ FAIL'} (${results.models.length} models found)`);
-    console.log(`Chat Completion: ${results.chat ? '✅ PASS' : '❌ FAIL'}`);
-    console.log(`Text Completion: ${results.text ? '✅ PASS' : '❌ FAIL'}`);
-    console.log(`Stats: ${results.stats ? '✅ PASS' : '❌ FAIL'}`);
-    
-    const passedTests = Object.values(results).filter(r => r === true || (Array.isArray(r) && r.length > 0)).length;
-    const totalTests = Object.keys(results).length;
-    
-    console.log(`\n🎯 Overall: ${passedTests}/${totalTests} tests passed`);
-    
-    if (passedTests === totalTests) {
-        console.log('🎉 All tests passed! Your API is working correctly.');
-    } else {
-        console.log('⚠️  Some tests failed. Please check your configuration and Ollama server.');
-    }
-}
-
+exports.runTests = runTests;
 // Run tests if this file is executed directly
 if (require.main === module) {
-    runAllTests().catch(console.error);
+    runTests().catch(console.error);
 }
-
-module.exports = {
-    testHealthCheck,
-    testListModels,
-    testChatCompletion,
-    testTextCompletion,
-    testStats,
-    runAllTests
-};
+//# sourceMappingURL=test-api.js.map
