@@ -66,6 +66,20 @@ app.use(helmet({
 // CORS middleware
 app.use(cors(corsOptions));
 
+// Additional CORS handling for Railway
+app.use((req, res, next): void => {
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, X-Requested-With, Accept, Origin, X-Correlation-ID');
+    res.header('Access-Control-Max-Age', '86400');
+    res.status(200).end();
+    return;
+  }
+  next();
+});
+
 // Compression middleware
 app.use(compression());
 

@@ -109,11 +109,36 @@ export const authenticateApiKey = (
  * CORS options configuration
  */
 export const corsOptions = {
-  origin: '*',
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // For Railway deployment, be more permissive
+    if (process.env['RAILWAY_PUBLIC_DOMAIN'] || process.env['NODE_ENV'] === 'production') {
+      return callback(null, true);
+    }
+    
+    // Allow all origins
+    callback(null, true);
+  },
   credentials: false,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-Requested-With', 'Accept', 'Origin']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-api-key', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'X-Correlation-ID',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods'
+  ],
+  exposedHeaders: ['X-Correlation-ID'],
+  preflightContinue: false,
+  maxAge: 86400 // 24 hours
 };
 
 /**
